@@ -26,16 +26,12 @@ public class QueryMain {
 
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
         Batch.setPageSize(getPageSize(args, in));
-        System.out.println("### Getting Query...");
 
         SQLQuery sqlquery = getSQLQuery(args[0]);
-        System.out.println("### Configuring Buffer Manager...");
         configureBufferManager(sqlquery.getNumJoin(), args, in);
 
-        System.out.println("### Getting and Printing out Query Plan...");
         Operator root = getQueryPlan(sqlquery);
         printFinalPlan(root, args, in);
-        System.out.println("### Executing Query...");
         executeQuery(root, args[1]);
     }
 
