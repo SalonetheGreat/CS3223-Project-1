@@ -102,7 +102,9 @@ public class Schema implements Serializable {
             newVector.add(baseAttr);
             if (baseAttr.getAggType() == Attribute.NONE) {
                 newTupleSize = newTupleSize + baseAttr.getAttrSize();
-            } else {
+            } else if (baseAttr.getAggType() == Attribute.MIN || baseAttr.getAggType() == Attribute.MAX){
+                newTupleSize = newTupleSize + baseAttr.getAttrSize();
+            } else { //Attribute.COUNT or Attribute.AVG
                 newTupleSize = newTupleSize + 4;
             }
         }
