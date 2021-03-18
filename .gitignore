@@ -2,4 +2,4 @@
 classes/
 out/
 query.out
-venv/
+venv/*
