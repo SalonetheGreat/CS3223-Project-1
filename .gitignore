@@ -1,5 +1,5 @@
-/.idea/
-/classes/
-/out/
+.idea/
+classes/
+out/
 query.out
-/venv/
+venv/
