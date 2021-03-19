@@ -78,11 +78,11 @@ public class Distinct extends Operator {
     }
 
     /**
-     * Read next tuple from operator
+     * Read next tuple from external sort
      */
     public Batch next() {
         outbatch = new Batch(batchsize);
-        /** all the tuples in the inbuffer goes to the output buffer **/
+
         Tuple previousTuple = null;
 
         if (inbatch == null) {
