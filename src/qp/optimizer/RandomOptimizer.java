@@ -80,13 +80,13 @@ public class RandomOptimizer {
             return node;
         } else if (node.getOpType() == OpType.DISTINCT) {
             Operator base = makeExecPlan(((Distinct) node).getBase());
-            int numbuff = BufferManager.getBuffersPerJoin();
+            int numbuff = BufferManager.getNumBuffer();
             ((Distinct) node).setBase(base);
             ((Distinct) node).setNumBuff(numbuff);
             return node;
         } else if (node.getOpType() == OpType.ORDERBY) {
             Operator base = makeExecPlan(((Orderby) node).getBase());
-            int numbuff = BufferManager.getBuffersPerJoin();
+            int numbuff = BufferManager.getNumBuffer();
             ((Orderby) node).setBase(base);
             ((Orderby) node).setNumBuff(numbuff);
             return node;

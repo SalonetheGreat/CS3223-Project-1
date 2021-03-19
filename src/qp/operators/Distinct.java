@@ -20,6 +20,7 @@ public class Distinct extends Operator {
     ArrayList<Attribute> attList;
     ExternalSort externalSort;
     ArrayList<Integer> indexList;
+    Tuple previousTuple;
     /**
      * The following fields are requied during execution
      * * of the Distinct Operator
@@ -30,6 +31,7 @@ public class Distinct extends Operator {
     public Distinct(Operator base, int type) {
         super(type);
         this.base = base;
+        this.previousTuple = null;
     }
 
     public Operator getBase() {
@@ -66,7 +68,6 @@ public class Distinct extends Operator {
         }
         externalSort = new ExternalSort(OpType.SORT, base, indexList, numBuff, ExternalSort.ASCENDING);
         if (!externalSort.open()) return false;
-
         return true;
     }
 
@@ -75,23 +76,18 @@ public class Distinct extends Operator {
      */
     public Batch next() {
         outbatch = new Batch(batchsize);
-
-        Tuple previousTuple = null;
-
-        while (!outbatch.isFull()) {
-            inbatch = externalSort.next();
-            for (int curs = 0; curs < inbatch.size(); ++curs) {
-                Tuple currTuple = inbatch.get(curs);
-                if (previousTuple == null) {
-                    previousTuple = currTuple;
-                }
-                if (previousTuple != currTuple) {
-                    outbatch.add(currTuple);
-                    previousTuple = currTuple;
-                }
+        inbatch = externalSort.next();
+        if (inbatch == null || inbatch.size() == 0) {
+            return null;
+        }
+        for (int curs = 0; curs < inbatch.size(); ++curs) {
+            Tuple currTuple = inbatch.get(curs);
+            if (previousTuple == null) {
+                previousTuple = currTuple;
             }
-            if (inbatch == null) {
-                break;
+            if (!previousTuple.equals(currTuple)) {
+                outbatch.add(currTuple);
+                previousTuple = currTuple;
             }
         }
         return outbatch;
