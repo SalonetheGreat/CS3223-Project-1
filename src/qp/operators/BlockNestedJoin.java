@@ -113,7 +113,7 @@ public class BlockNestedJoin extends Join {
             if (lpgcurs == 0 && lcurs == 0 && eosr == true) {
                 /** new left block needs to be fetched**/
                 leftbatches = new ArrayList<Batch>();
-                for (k = 0; k < numBuff-1; ++k) {
+                for (k = 0; k < numBuff-2; ++k) {
                     leftbatch = (Batch) left.next();
                     if (leftbatch == null) {
                         eosl = true;
