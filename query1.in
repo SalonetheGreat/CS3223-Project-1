@@ -1,2 +1,2 @@
 SELECT *
-FROM Students
+FROM Employees

@@ -4,7 +4,6 @@
 
 package qp.operators;
 
-import org.w3c.dom.Attr;
 import qp.utils.Aggregation;
 import qp.utils.Attribute;
 import qp.utils.Batch;
@@ -19,6 +18,8 @@ public class Project extends Operator {
     ArrayList<Attribute> attrset;  // Set of attributes to project
     int batchsize;                 // Number of tuples per outbatch
     boolean hasAggregation;        //whether to project aggregation or not
+    int cursor;                    //cursor for input buffer
+    boolean eof;                   //whether end of table is reached
 
     /**
      * The following fields are requied during execution
@@ -62,6 +63,9 @@ public class Project extends Operator {
         int tuplesize = schema.getTupleSize();
         batchsize = Batch.getPageSize() / tuplesize;
         hasAggregation = false;
+
+        cursor = 0;
+        eof = false;
 
         if (!base.open()) return false;
 
@@ -108,8 +112,6 @@ public class Project extends Operator {
                 for (int j = 0; j < attrset.size(); ++j) {
                     Object data = basetuple.dataAt(attrIndex[j]);
                     if (aggregations.size() < attrset.size()) {
-                        /**System.out.println("attr name: " + attrset.get(j).getColName());
-                        System.out.println("attr type: " + attrset.get(j).getType());**/
                         int type;
                         if (data instanceof Integer) {
                             attrset.get(j).setType(Attribute.INT);
@@ -122,7 +124,6 @@ public class Project extends Operator {
                             type = Attribute.STRING;
                         }
                         aggregations.add(new Aggregation(data, type));
-                        //System.out.println("aggregations size: " + aggregations.size());
                         continue;
                     }
                     aggregations.get(j).update(data);
@@ -130,12 +131,9 @@ public class Project extends Operator {
             }
             inbatch = base.next();
         }
-        //System.out.println("make new tuple");
-        //System.out.println("max: " + aggregations.get(0).returnMaxInt());
         ArrayList<Object> present = new ArrayList<>();
         for (int i = 0; i < attrset.size(); ++i) {
             Attribute attr = attrset.get(i);
-            //System.out.println("aggregate type: " + attr.getAggType());
             if (attr.getAggType() == Attribute.MIN) {
                 if (attr.getType() == Attribute.INT) {
                     present.add(aggregations.get(i).returnMinInt());
@@ -145,9 +143,7 @@ public class Project extends Operator {
                     present.add(aggregations.get(i).returnMinStr());
                 }
             } else if (attr.getAggType() == Attribute.MAX) {
-                //System.out.println("Doing MAX");
                 if (attr.getType() == Attribute.INT) {
-                   // System.out.println("max: " + aggregations.get(i).returnMaxInt());
                     present.add(aggregations.get(i).returnMaxInt());
                 } else if (attr.getType() == Attribute.REAL){
                     present.add(aggregations.get(i).returnMaxFlt());
@@ -169,25 +165,43 @@ public class Project extends Operator {
      * Read next tuple from operator
      */
     public Batch next_noaggregation() {
-        outbatch = new Batch(batchsize);
-        /** all the tuples in the inbuffer goes to the output buffer **/
-        inbatch = base.next();
-
-        if (inbatch == null) {
+        if (eof == true && cursor == 0) {
             return null;
         }
 
-        for (int i = 0; i < inbatch.size(); i++) {
-            Tuple basetuple = inbatch.get(i);
-            //Debug.PPrint(basetuple);
-            //System.out.println();
-            ArrayList<Object> present = new ArrayList<>();
-            for (int j = 0; j < attrset.size(); j++) {
-                Object data = basetuple.dataAt(attrIndex[j]);
-                present.add(data);
+        outbatch = new Batch(batchsize);
+        /** all the tuples in the inbuffer goes to the output buffer **/
+        while (!outbatch.isFull()) {
+            if (cursor == 0) {
+                inbatch = base.next();
             }
-            Tuple outtuple = new Tuple(present);
-            outbatch.add(outtuple);
+
+            if (inbatch != null) {
+                for (int i = cursor; i < inbatch.size(); i++) {
+                    Tuple basetuple = inbatch.get(i);
+                    //Debug.PPrint(basetuple);
+                    //System.out.println();
+                    ArrayList<Object> present = new ArrayList<>();
+                    for (int j = 0; j < attrset.size(); j++) {
+                        Object data = basetuple.dataAt(attrIndex[j]);
+                        present.add(data);
+                    }
+                    Tuple outtuple = new Tuple(present);
+                    outbatch.add(outtuple);
+                    if (outbatch.isFull()) {
+                        if (i == inbatch.size()-1) {
+                            cursor = 0;
+                        } else {
+                            cursor = i+1;
+                        }
+                        return outbatch;
+                    }
+                }
+                cursor = 0;
+            } else {
+                eof = true;
+                return outbatch;
+            }
         }
         return outbatch;
     }

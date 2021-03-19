@@ -113,7 +113,7 @@ public class BlockNestedJoin extends Join {
             if (lpgcurs == 0 && lcurs == 0 && eosr == true) {
                 /** new left block needs to be fetched**/
                 leftbatches = new ArrayList<Batch>();
-                for (k = 0; k < numBuff-1; ++k) {
+                for (k = 0; k < numBuff-2; ++k) {
                     leftbatch = (Batch) left.next();
                     if (leftbatch == null) {
                         eosl = true;
@@ -137,46 +137,48 @@ public class BlockNestedJoin extends Join {
                 }
             }
 
-            leftbatchsize = leftbatches.get(0).size();
+            //leftbatchsize = leftbatches.get(0).size();
+            //System.out.println("left batch size: " + leftbatchsize);
             while(eosr == false) {
                 try {
                     if (lpgcurs == 0 && lcurs == 0 && rcurs == 0) {
                         rightbatch = (Batch) in.readObject();
                     }
                     for (i = lpgcurs; i < leftbatches.size(); ++i) {
-                        for (l = lcurs; l <leftbatchsize; ++l) {
+                        leftbatch = leftbatches.get(i);
+                        for (l = lcurs; l <leftbatch.size(); ++l) {
                             for (j = rcurs; j < rightbatch.size(); ++j) {
-                                Tuple lefttuple = leftbatches.get(i).get(l);
+                                Tuple lefttuple = leftbatch.get(l);
                                 Tuple righttuple = rightbatch.get(j);
                                 if (lefttuple.checkJoin(righttuple, leftindex, rightindex)) {
                                     Tuple outtuple = lefttuple.joinWith(righttuple);
                                     outbatch.add(outtuple);
                                     if (outbatch.isFull()) {
-                                        if (i == leftbatches.size() - 1 && l == leftbatchsize -1 && j == rightbatch.size() - 1) {  //case 1
+                                        if (i == leftbatches.size() - 1 && l == leftbatch.size() -1 && j == rightbatch.size() - 1) {  //case 1
                                             lpgcurs = 0;
                                             lcurs = 0;
                                             rcurs = 0;
-                                        } else if (i != leftbatches.size() - 1 && l == leftbatchsize - 1 && j == rightbatch.size() - 1) {  //case 2
+                                        } else if (i != leftbatches.size() - 1 && l == leftbatch.size() - 1 && j == rightbatch.size() - 1) {  //case 2
                                             lpgcurs = i + 1;
                                             lcurs = 0;
                                             rcurs = 0;
-                                        } else if (i == leftbatches.size() - 1 && l != leftbatchsize - 1 && j == rightbatch.size() - 1) {  //case 3
+                                        } else if (i == leftbatches.size() - 1 && l != leftbatch.size() - 1 && j == rightbatch.size() - 1) {  //case 3
                                             lpgcurs = i;
                                             lcurs = l + 1;
                                             rcurs = 0;
-                                        } else if (i == leftbatches.size() - 1 && l == leftbatchsize - 1 && j != rightbatch.size() - 1){  //case 4
+                                        } else if (i == leftbatches.size() - 1 && l == leftbatch.size() - 1 && j != rightbatch.size() - 1){  //case 4
                                             lpgcurs = i;
                                             lcurs = l;
                                             rcurs = j + 1;
-                                        } else if (i != leftbatches.size() - 1 && l != leftbatchsize - 1 && j == rightbatch.size() -  1) {  //case 5
+                                        } else if (i != leftbatches.size() - 1 && l != leftbatch.size() - 1 && j == rightbatch.size() -  1) {  //case 5
                                             lpgcurs = i;
                                             lcurs = l + 1;
                                             rcurs = 0;
-                                        } else if (i != leftbatches.size() - 1 && l == leftbatchsize - 1 && j != rightbatch.size() - 1) {  //case 6
+                                        } else if (i != leftbatches.size() - 1 && l == leftbatch.size() - 1 && j != rightbatch.size() - 1) {  //case 6
                                             lpgcurs = i + 1;
                                             lcurs = l;
                                             rcurs = j + 1;
-                                        } else if (i == leftbatches.size() - 1 && l != leftbatchsize - 1 && j != rightbatch.size() - 1) {  //case 7
+                                        } else if (i == leftbatches.size() - 1 && l != leftbatch.size() - 1 && j != rightbatch.size() - 1) {  //case 7
                                             lpgcurs = i;
                                             lcurs = l;
                                             rcurs = j + 1;
