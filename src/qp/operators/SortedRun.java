@@ -119,4 +119,16 @@ class SortedRun {
         }
         return true;
     }
+
+    public boolean resetInputStream() {
+        try {
+            in = new ObjectInputStream(new FileInputStream(filename));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            System.err.println("SortedRun: Error resetting input stream " + filename);
+            System.exit(1);
+        }
+        return true;
+    }
 }

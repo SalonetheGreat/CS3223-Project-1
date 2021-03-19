@@ -89,6 +89,24 @@ public class SortMergeJoin extends Join {
         rcurs = 0;
         eosl = false;
         eosr = false;
+
+        for (int i = 0; i < leftbatches.size(); ++i) {
+            Batch curr = leftES.next();
+            if (curr == null) {
+                break;
+            }
+            leftbatches.set(i, curr);
+        }
+        lpgcurs = 0; lcurs = 0;
+        for (int i = 0; i < rightbatches.size(); ++i) {
+            Batch curr = rightES.next();
+            if (curr == null) {
+                break;
+            }
+            rightbatches.set(i, curr);
+        }
+        rpgcurs = 0; rcurs = 0;
+
         return true;
     }
 
@@ -101,6 +119,9 @@ public class SortMergeJoin extends Join {
         while (!outbatch.isFull()) {
             if (lpgcurs == leftbatches.size()) {
                 for (int i = 0; i < leftbatches.size(); ++i) {
+                    leftbatches.set(i, null);
+                }
+                for (int i = 0; i < leftbatches.size(); ++i) {
                     Batch curr = leftES.next();
                     if (curr == null) {
                         break;
@@ -110,6 +131,9 @@ public class SortMergeJoin extends Join {
                 lpgcurs = 0; lcurs = 0;
             }
             if (rpgcurs == rightbatches.size()) {
+                for (int i = 0; i < rightbatches.size(); ++i) {
+                    rightbatches.set(i, null);
+                }
                 for (int i = 0; i < rightbatches.size(); ++i) {
                     Batch curr = rightES.next();
                     if (curr == null) {
@@ -161,6 +185,7 @@ public class SortMergeJoin extends Join {
                 }
             }
         }
+
         return outbatch;
     }
 
