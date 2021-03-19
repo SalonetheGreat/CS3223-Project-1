@@ -19,11 +19,6 @@ class SortedRun {
         filename = "SortedRun-" + fn;
         this.batchsize = batchsize;
         try {
-            in = new ObjectInputStream(new FileInputStream(filename));
-        } catch (IOException e) {
-            System.err.println("SortedRun: Error reading " + filename);
-        }
-        try {
             out = new ObjectOutputStream(new FileOutputStream((filename)));
         } catch (IOException e) {
             System.err.println("SortedRun: Error writing " + filename);
@@ -34,11 +29,6 @@ class SortedRun {
         fn++;
         filename = "SortedRun-" + fn;
         this.batchsize = batchsize;
-        try {
-            in = new ObjectInputStream(new FileInputStream(filename));
-        } catch (IOException e) {
-            System.err.println("SortedRun: Error reading " + filename);
-        }
         try {
             out = new ObjectOutputStream(new FileOutputStream((filename)));
         } catch (IOException e) {
@@ -80,24 +70,26 @@ class SortedRun {
         if (eos) {
             return null;
         }
+        try {
+            in = new ObjectInputStream(new FileInputStream(filename));
+        } catch (IOException e) {
+            System.err.println("SortedRun: Error reading " + filename);
+        }
         Batch tuples = new Batch(batchsize);
-        while (!tuples.isFull()) {
-            try {
-                Tuple data = (Tuple) in.readObject();
-                tuples.add(data);
-            } catch (ClassNotFoundException cnf) {
-                System.err.println("Scan:Class not found for reading file  " + filename);
-                System.exit(1);
-            } catch (EOFException EOF) {
-                /** At this point incomplete page is sent and at next call it considered
-                 ** as end of file
-                 **/
-                eos = true;
-                return tuples;
-            } catch (IOException e) {
-                System.err.println("Scan:Error reading " + filename);
-                System.exit(1);
-            }
+        try {
+            Batch data = (Batch) in.readObject();
+        } catch (ClassNotFoundException cnf) {
+            System.err.println("SortedRun:Class not found for reading file  " + filename);
+            System.exit(1);
+        } catch (EOFException EOF) {
+            /** At this point incomplete page is sent and at next call it considered
+             ** as end of file
+             **/
+            eos = true;
+            return tuples;
+        } catch (IOException e) {
+            System.err.println("SortedRun:Error reading " + filename);
+            System.exit(1);
         }
         return tuples;
     }

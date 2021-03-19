@@ -39,7 +39,7 @@ class ExternalSort extends Operator {
             ArrayList<Tuple> tuplesInMem = new ArrayList<>();
             for (int i = 0; i < numBuff; ++i) {
                 Batch curr = base.next();
-                if (curr != null) mem.set(i, curr);
+                if (curr != null) mem.add(curr);
                 else break;
                 for (int j = 0; j < curr.size(); ++j)
                     tuplesInMem.add(curr.get(j));
@@ -78,7 +78,7 @@ class ExternalSort extends Operator {
     }
     private int findMaxTupleIndex(ArrayList<Batch> mem, int[] cursors, boolean[] isNull) {
         int maxIdx = -1; boolean foundNonNull = false;
-        for (int i = 0; i < mem.size(); ++i) {
+        for (int i = 0; i < mem.size()-1; ++i) {
             if (isNull[i]) continue;
             if (!foundNonNull) {
                 maxIdx = i;
@@ -94,12 +94,11 @@ class ExternalSort extends Operator {
     private ArrayList<SortedRun> mergeSortedRuns(ArrayList<SortedRun> srs, ArrayList<Batch> mem) {
         ArrayList<SortedRun> newSrs = new ArrayList<>(srs.size() % (numBuff-1) + 1);
         for (int i = 0; i < srs.size(); i += (numBuff-1)) {
-            SortedRun outSr = newSrs.get(i/(numBuff-1));
-            outSr = new SortedRun(batchsize);
-            mem = new ArrayList<Batch>();
+            SortedRun outSr = new SortedRun(batchsize);
+            mem = new ArrayList<Batch>(0);
             for (int j = 0; j < numBuff-1; ++j) {
                 Batch temp = srs.get(i+j).next();
-                if (temp != null)
+                if (temp != null || temp.size() > 0)
                     mem.add(temp);
                 else
                     break;
@@ -123,10 +122,14 @@ class ExternalSort extends Operator {
                 cursors[maxIdx]++;
                 if (cursors[maxIdx] == mem.get(maxIdx).size()) {
                     Batch temp = srs.get(i+maxIdx).next();
-                    if (temp != null) mem.set(maxIdx, temp);
+                    if (temp != null) {
+                        mem.set(maxIdx, temp);
+                        cursors[maxIdx] = 0;
+                    }
                     else isNull[maxIdx] = true;
                 }
             }
+            newSrs.set(i, outSr);
         }
         return newSrs;
     }
