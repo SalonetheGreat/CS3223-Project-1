@@ -29,6 +29,12 @@ public class SortMergeJoin extends Join {
     boolean eosl;
     boolean eosr;
 
+    boolean hasRepeat;
+    Tuple leftBaseTuple;
+    Tuple tempTuple;
+    ArrayList<Tuple> repeatedTuples;
+    ArrayList<Tuple> tuplesToOutput;
+
     ExternalSort leftES;
     ExternalSort rightES;
 
@@ -89,6 +95,9 @@ public class SortMergeJoin extends Join {
         rcurs = 0;
         eosl = false;
         eosr = false;
+        hasRepeat = false;
+        repeatedTuples = new ArrayList<>();
+        tuplesToOutput = new ArrayList<>();
 
         for (int i = 0; i < leftbatches.size(); ++i) {
             Batch curr = leftES.next();
@@ -153,22 +162,40 @@ public class SortMergeJoin extends Join {
             } else {
                 Tuple lefttuple = leftbatches.get(lpgcurs).get(lcurs);
                 Tuple righttuple = rightbatches.get(rpgcurs).get(rcurs);
+
+                if (hasRepeat && !allEqual(leftBaseTuple, lefttuple)) {
+                    if (Tuple.compareTuples(lefttuple, tempTuple, leftindexes, rightindexes) == 0) {
+                        for (Tuple t : repeatedTuples) {
+                            tuplesToOutput.add(lefttuple.joinWith(t));
+                        }
+                    } else if (Tuple.compareTuples(lefttuple, tempTuple, leftindexes, rightindexes) > 0) {
+                        hasRepeat = false;
+                    }
+                }
+
+                if (tuplesToOutput.size() != 0) {
+                    outbatch.add(tuplesToOutput.get(0));
+                    tuplesToOutput.remove(0);
+                    continue;
+                }
+
                 int cmpRes = Tuple.compareTuples(lefttuple, righttuple, leftindexes, rightindexes);
                 if (cmpRes == 0) {
-                    if (lefttuple.checkJoin(righttuple, leftindexes, rightindexes)) {
-                        Tuple outTuple = lefttuple.joinWith(righttuple);
-                        outbatch.add(outTuple);
-                        lcurs++; rcurs++;
-                        if (lcurs == leftbatches.get(lpgcurs).size()) {
-                            lcurs = 0;
-                            lpgcurs++;
-                        }
-                        if (rcurs == rightbatches.get(rpgcurs).size()) {
-                            rcurs = 0;
-                            rpgcurs++;
-                        }
-                    } else {
-                        lcurs++; rcurs++;
+                    Tuple outTuple = lefttuple.joinWith(righttuple);
+                    outbatch.add(outTuple);
+                    if (!hasRepeat) {
+                        leftBaseTuple = lefttuple;
+                        repeatedTuples = new ArrayList<>();
+                        repeatedTuples.add(righttuple);
+                        tempTuple = repeatedTuples.get(0);
+                        hasRepeat = true;
+                    } else if (Tuple.compareTuples(righttuple, tempTuple, rightindexes, rightindexes) == 0) {
+                        repeatedTuples.add(righttuple);
+                    }
+                    rcurs++;
+                    if (rcurs == rightbatches.get(rpgcurs).size()) {
+                        rcurs = 0;
+                        rpgcurs++;
                     }
                 } else if (cmpRes < 0) {
                     lcurs++;
@@ -196,5 +223,16 @@ public class SortMergeJoin extends Join {
         if (!leftES.close()) return false;
         if (!rightES.close()) return false;
         return true;
+    }
+
+    public  boolean allEqual(Tuple left, Tuple right) {
+        if (left.data().size() != right.data().size())
+            return false;
+        int indexesSize = left.data().size();
+        ArrayList<Integer> compareIndexes = new ArrayList<>();
+        for (int i = 0; i < indexesSize; ++i) {
+            compareIndexes.add(i);
+        }
+        return Tuple.compareTuples(left, right, compareIndexes, compareIndexes) == 0;
     }
 }
