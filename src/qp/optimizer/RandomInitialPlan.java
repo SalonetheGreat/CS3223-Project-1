@@ -48,11 +48,6 @@ public class RandomInitialPlan {
      **/
     public Operator prepareInitialPlan() {
 
-        if (sqlquery.isDistinct()) {
-            System.err.println("Distinct is not implemented.");
-            System.exit(1);
-        }
-
         if (sqlquery.getGroupByList().size() > 0) {
             System.err.println("GroupBy is not implemented.");
             System.exit(1);
@@ -69,8 +64,14 @@ public class RandomInitialPlan {
         if (numJoin != 0) {
             createJoinOp();
         }
-        createProjectOp();
 
+        createProjectOp();
+        
+        if (sqlquery.isDistinct()) {
+            //System.err.println("Distinct is not implemented.");
+            //System.exit(1);
+            createDistinctOp();
+        }
         return root;
     }
 
@@ -185,6 +186,13 @@ public class RandomInitialPlan {
             root = jn;
     }
 
+    public void createDistinctOp() {
+        Operator base = root;
+        root = new Distinct(base, OpType.DISTINCT);
+        Schema newSchema = base.getSchema();
+        root.setSchema(newSchema);
+    }
+
     public void createProjectOp() {
         Operator base = root;
         if (projectlist == null)
@@ -199,6 +207,19 @@ public class RandomInitialPlan {
             root.setSchema(newSchema);
         }
     }
+/*
+    public void createDistinctOp() {
+        Operator base = root;
+        if (projectlist == null)
+            projectlist = new ArrayList<Attribute>();
+        if (!projectlist.isEmpty()) {
+            root = new Distinct(base, projectlist, OpType.DISTINCT);
+            Schema newSchema = base.getSchema().subSchema(projectlist);
+            root.setSchema(newSchema);
+        }
+    }
+
+ */
 
     private void modifyHashtable(Operator old, Operator newop) {
         for (HashMap.Entry<String, Operator> entry : tab_op_hash.entrySet()) {
