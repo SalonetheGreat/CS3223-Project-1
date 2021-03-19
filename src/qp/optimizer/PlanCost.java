@@ -15,6 +15,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Optional;
 import java.util.StringTokenizer;
 
 public class PlanCost {
@@ -78,10 +79,20 @@ public class PlanCost {
             return getStatistics((Scan) node);
         } else if (node.getOpType() == OpType.DISTINCT) {
             return getStatistics((Distinct) node);
+        } else if (node.getOpType() == OpType.ORDERBY) {
+            return getStatistics((Orderby) node);
         }
         System.out.println("operator is not supported");
         isFeasible = false;
         return 0;
+    }
+
+    /**
+     * Orderby will not change any statistics
+     * * No cost involved as done on the fly
+     **/
+    private long getStatistics(Orderby node) {
+        return calculateCost(node.getBase());
     }
 
     /**
