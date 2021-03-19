@@ -19,6 +19,7 @@ public class Distinct extends Operator {
     int batchsize;                 // Number of tuples per outbatch
     ArrayList<Attribute> attList;
     ExternalSort externalSort;
+    ArrayList<Integer> indexList;
     /**
      * The following fields are requied during execution
      * * of the Distinct Operator
@@ -66,8 +67,11 @@ public class Distinct extends Operator {
         if (!base.open()) return false;
         attList = new ArrayList<>();
         attList = base.getSchema().getAttList();
-        //problem here
-        externalSort = new ExternalSort(OpType.SORT, base, 0, numBuff);
+        indexList = new ArrayList<Integer>(0);
+        for (int i=0; i < attList.size(); ++i) {
+            indexList.add(i+1);
+        }
+        externalSort = new ExternalSort(OpType.SORT, base, indexList, numBuff);
         if (!externalSort.open()) return false;
 
         return true;
