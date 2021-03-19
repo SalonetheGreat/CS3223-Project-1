@@ -186,6 +186,8 @@ public class RandomInitialPlan {
     public void createDistinctOp() {
         Operator base = root;
         root = new Distinct(base, OpType.DISTINCT);
+        Schema newSchema = base.getSchema();
+        root.setSchema(newSchema);
     }
 
     public void createProjectOp() {
