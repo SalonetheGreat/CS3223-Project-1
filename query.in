@@ -1,2 +1,3 @@
-SELECT DISTINCT Aircrafts.aid
+SELECT Aircrafts.aid
 FROM Aircrafts
+ORDERBY Aircrafts.aid
