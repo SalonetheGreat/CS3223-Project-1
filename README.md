@@ -12,9 +12,25 @@ New functions implemented in the code
    
 2. *External Sort*
 
+   The aim of this class is to sort a base operator. It is constructed using a base Operator, and generates a Sorted Run consisting of same data of base in ascending/descending order. 
+
+   The idea is based on External Sort. It consists of Phase 1 and Phase 2 of external sort. 
+
+   When next() is called, it will return the next Batch in final sorted run. 
+
 3. *SortedRun*
+
+   The basic idea of this class is to create a file consisting of Batch Objects, which simulates sorted runs in External Sort. 
+
+   This class is a basic component for External Sort. All batches and all tuples insides these batches are sorted. When next() is called, the next Batch of the file will be fetched from the file and returned. 
    
 4. *Sort Merge join*
+
+   Refered to class file src/qp/operators/BlockNestedJoin. 
+   
+   This class will perform SortMergeJoin of two relationsand, and its next() returns a Batch consisting of joined tuples. 
+   
+   The basic idea of Sort Merge Join is to use 2 childern Operator to construct 2 ExternalSort instances. When next() is called, it pull data from finalSortedRuns in 2 ExternalSorts into the memory, and then merge them into an outbatch.
 
 5. *Distinct*
    
