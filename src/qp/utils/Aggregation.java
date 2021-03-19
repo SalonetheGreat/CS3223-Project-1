@@ -1,26 +1,22 @@
 package qp.utils;
 
-import com.sun.source.doctree.SummaryTree;
-
-import java.nio.charset.MalformedInputException;
-import java.security.PublicKey;
-
 public class Aggregation {
 
     int type;      //type of the attribute
     int COUNT;
     int MIN_INT;
     int MAX_INT;
-    int SUM_INT;
+    double SUM;
     float MIN_FLT ;
     float MAX_FLT;
-    float SUM_FLT;
+    //float SUM_FLT;
     String MIN_STR = null;
     String MAX_STR = null;
 
 
     public Aggregation(Object data, int type) {
         this.type = type;
+        //System.out.println("this.type: " + this.type);
         if (data == null) {
             COUNT = 0;
         } else {
@@ -29,16 +25,18 @@ public class Aggregation {
         }
     }
     public void initialize (Object data) {
-        if (type == Attribute.REAL) {
+        //System.out.println("this.type: " + this.type);
+        if (this.type == Attribute.REAL) {
             float num = ((Float)data).floatValue();
             MIN_FLT = num;
             MAX_FLT = num;
-            SUM_FLT = num;
-        } else if (type == Attribute.INT) {
+            SUM += num;
+        } else if (this.type == Attribute.INT) {
             int num = ((Integer)data).intValue();
+            //System.out.println(num);
             MAX_INT = num;
             MIN_INT = num;
-            SUM_INT = num;
+            SUM += num;
         } else {
             MAX_STR = (String) data;
             MIN_STR = (String) data;
@@ -56,7 +54,8 @@ public class Aggregation {
             COUNT += 1;
             if (type == Attribute.INT) {
                 int num = ((Integer)data).intValue();
-                SUM_INT += num;
+                //System.out.println(num);
+                SUM += num;
                 if (MAX_INT < num) {
                     MAX_INT = num;
                 }
@@ -65,7 +64,7 @@ public class Aggregation {
                 }
             } else if (type == Attribute.REAL){
                 float num =((Float)data).floatValue();
-                SUM_FLT += num;
+                SUM += num;
                 if (MAX_FLT < num) {
                     MAX_FLT = num;
                 }
@@ -121,12 +120,7 @@ public class Aggregation {
         if (COUNT == 0) {
             return null;
         } else {
-            if (type == Attribute.INT) {
-                float sum = (float)SUM_INT;
-                return sum/COUNT;
-            } else {
-                return SUM_FLT/COUNT;
-            }
+            return Float.valueOf((float) (SUM/COUNT));
         }
     }
 }

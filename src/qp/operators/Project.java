@@ -108,7 +108,21 @@ public class Project extends Operator {
                 for (int j = 0; j < attrset.size(); ++j) {
                     Object data = basetuple.dataAt(attrIndex[j]);
                     if (aggregations.size() < attrset.size()) {
-                        aggregations.add(new Aggregation(data, attrset.get(j).getType()));
+                        /**System.out.println("attr name: " + attrset.get(j).getColName());
+                        System.out.println("attr type: " + attrset.get(j).getType());**/
+                        int type;
+                        if (data instanceof Integer) {
+                            attrset.get(j).setType(Attribute.INT);
+                            type = Attribute.INT;
+                        } else if (data instanceof Float) {
+                            attrset.get(j).setType(Attribute.REAL);
+                            type =Attribute.REAL;
+                        } else {
+                            attrset.get(j).setType(Attribute.STRING);
+                            type = Attribute.STRING;
+                        }
+                        aggregations.add(new Aggregation(data, type));
+                        //System.out.println("aggregations size: " + aggregations.size());
                         continue;
                     }
                     aggregations.get(j).update(data);
@@ -116,20 +130,29 @@ public class Project extends Operator {
             }
             inbatch = base.next();
         }
+        //System.out.println("make new tuple");
+        //System.out.println("max: " + aggregations.get(0).returnMaxInt());
         ArrayList<Object> present = new ArrayList<>();
         for (int i = 0; i < attrset.size(); ++i) {
             Attribute attr = attrset.get(i);
+            //System.out.println("aggregate type: " + attr.getAggType());
             if (attr.getAggType() == Attribute.MIN) {
                 if (attr.getType() == Attribute.INT) {
                     present.add(aggregations.get(i).returnMinInt());
-                } else {
+                } else if (attr.getType() == Attribute.REAL){
                     present.add(aggregations.get(i).returnMinFlt());
+                } else {
+                    present.add(aggregations.get(i).returnMinStr());
                 }
             } else if (attr.getAggType() == Attribute.MAX) {
+                //System.out.println("Doing MAX");
                 if (attr.getType() == Attribute.INT) {
+                   // System.out.println("max: " + aggregations.get(i).returnMaxInt());
                     present.add(aggregations.get(i).returnMaxInt());
-                } else {
+                } else if (attr.getType() == Attribute.REAL){
                     present.add(aggregations.get(i).returnMaxFlt());
+                } else {
+                    present.add(aggregations.get(i).returnMaxStr());
                 }
             } else if (attr.getAggType() == Attribute.COUNT) {
                 present.add(aggregations.get(i).returnCount());

@@ -94,6 +94,9 @@ public class RandomInitialPlan {
                 ObjectInputStream _if = new ObjectInputStream(new FileInputStream(filename));
                 Schema schm = (Schema) _if.readObject();
                 op1.setSchema(schm);
+                /**for(int j = 0; j < schm.getAttList().size(); j++) {
+                    System.out.println(j+1 + " attribute: " + schm.getAttribute(j).toString() + " attr type: " + schm.getAttribute(j).getType());
+                }**/
                 _if.close();
             } catch (Exception e) {
                 System.err.println("RandomInitialPlan:Error reading Schema of the table " + filename);
@@ -188,6 +191,10 @@ public class RandomInitialPlan {
             projectlist = new ArrayList<Attribute>();
         if (!projectlist.isEmpty()) {
             root = new Project(base, projectlist, OpType.PROJECT);
+            /**for (int i = 0; i < projectlist.size(); i++) {
+                System.out.println("project attr: " + projectlist.get(i).toString());
+                System.out.println("project attr type: " + projectlist.get(i).getType());
+            }**/
             Schema newSchema = base.getSchema().subSchema(projectlist);
             root.setSchema(newSchema);
         }
