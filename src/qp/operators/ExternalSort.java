@@ -26,6 +26,7 @@ class ExternalSort extends Operator {
         this.numBuff = numBuff;
         mem = new ArrayList<>(numBuff);
         filenum = 0;
+        srs = new ArrayList<>();
     }
 
     @Override
