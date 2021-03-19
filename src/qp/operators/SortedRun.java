@@ -112,6 +112,9 @@ class SortedRun {
             return false;
         }
         File file = new File(filename);
+        if (!file.delete()) {
+            System.err.println("SortedRun: Cannot delete file " + filename);
+        }
         return true;
     }
 }
