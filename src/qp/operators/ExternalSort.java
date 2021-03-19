@@ -24,9 +24,12 @@ class ExternalSort extends Operator {
         this.compareIndexes = compareIndexes;
         this.schema = base.getSchema();
         this.numBuff = numBuff;
-        mem = new ArrayList<>(numBuff);
+        mem = new ArrayList<>();
+        for (int i = 0; i < numBuff; ++i) {
+            mem.add(new Batch(batchsize));
+        }
         filenum = 0;
-        srs = new ArrayList<>(0);
+        srs = new ArrayList<>();
     }
 
     @Override
@@ -53,7 +56,8 @@ class ExternalSort extends Operator {
                 finalSR = srs.get(0);
                 return true;
             }
-            srs = mergeSortedRuns(srs, mem);
+            ArrayList<SortedRun> temp = mergeSortedRuns(srs, mem);
+            srs = temp;
         }
     }
 
@@ -79,7 +83,7 @@ class ExternalSort extends Operator {
     private int findMaxTupleIndex(ArrayList<Batch> mem, int[] cursors, boolean[] isNull) {
         int maxIdx = -1; boolean foundNonNull = false;
         for (int i = 0; i < mem.size()-1; ++i) {
-            if (isNull[i]) continue;
+            if (isNull[i] || mem.get(i).size() == 0) continue;
             if (!foundNonNull) {
                 maxIdx = i;
                 foundNonNull = true;
@@ -92,11 +96,17 @@ class ExternalSort extends Operator {
     }
 
     private ArrayList<SortedRun> mergeSortedRuns(ArrayList<SortedRun> srs, ArrayList<Batch> mem) {
-        ArrayList<SortedRun> newSrs = new ArrayList<>(srs.size() % (numBuff-1) + 1);
+        ArrayList<SortedRun> newSrs = new ArrayList<>();
+        for (int i = 0; i < (int) Math.ceil((double)srs.size() / (double)(numBuff-1)); ++i) {
+            newSrs.add(new SortedRun(batchsize));
+        }
         for (int i = 0; i < srs.size(); i += (numBuff-1)) {
             SortedRun outSr = new SortedRun(batchsize);
-            mem = new ArrayList<Batch>(0);
+            mem = new ArrayList<>();
             for (int j = 0; j < numBuff-1; ++j) {
+                if (i+j >= srs.size()) {
+                    break;
+                }
                 Batch temp = srs.get(i+j).next();
                 if (temp != null || temp.size() > 0)
                     mem.add(temp);
@@ -129,7 +139,7 @@ class ExternalSort extends Operator {
                     else isNull[maxIdx] = true;
                 }
             }
-            newSrs.set(i, outSr);
+            newSrs.set(i/(numBuff-1), outSr);
         }
         return newSrs;
     }
