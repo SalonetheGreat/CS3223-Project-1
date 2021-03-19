@@ -1,8 +1,2 @@
-SELECT *
-<<<<<<< HEAD
+SELECT DISTINCT Aircrafts.aid
 FROM Aircrafts
-
-=======
-FROM Aircrafts, Schedule
-WHERE Aircrafts.aid = Schedule.aid
->>>>>>> ed022c7bf8071ff8c189dd17f33e5ad92e63fe7c

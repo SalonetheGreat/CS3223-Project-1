@@ -77,7 +77,7 @@ class SortedRun {
         }
         Batch tuples = new Batch(batchsize);
         try {
-            Batch data = (Batch) in.readObject();
+            tuples = (Batch) in.readObject();
         } catch (ClassNotFoundException cnf) {
             System.err.println("SortedRun:Class not found for reading file  " + filename);
             System.exit(1);
@@ -86,6 +86,8 @@ class SortedRun {
              ** as end of file
              **/
             eos = true;
+            if (tuples.size() == 0)
+                return null;
             return tuples;
         } catch (IOException e) {
             System.err.println("SortedRun:Error reading " + filename);
@@ -96,13 +98,42 @@ class SortedRun {
 
     public boolean close() {
         try {
-            in.close();
-            out.close();
+            if (in != null) in.close();
+            if (out != null) out.close();
         } catch (IOException io) {
             System.err.println("SortedRun: Error closing file");
             return false;
         }
         File file = new File(filename);
         return true;
+    }
+
+    public boolean writeToFile(String fileToWrite) {
+        return false;
+//        try {
+//            ObjectInputStream inToRead = new ObjectInputStream(new FileInputStream(filename));
+//            ObjectOutputStream outToWrite = new ObjectOutputStream(new FileOutputStream(fileToWrite));
+//        } catch (IOException e) {
+//            System.err.println("Error printing SortedRun to file");
+//            System.exit(2);
+//        }
+//        boolean wtfeos = false;
+//        while (!wtfeos) {
+//            Batch tuples = new Batch(batchsize);
+//            try {
+//                tuples = (Batch) in.readObject();
+//            } catch (ClassNotFoundException cnf) {
+//                System.err.println("SortedRun:Class not found for reading file  " + filename);
+//                System.exit(1);
+//            } catch (EOFException EOF) {
+//                /** At this point incomplete page is sent and at next call it considered
+//                 ** as end of file
+//                 **/
+//                wtfeos = true;
+//            } catch (IOException e) {
+//                System.err.println("SortedRun:Error reading " + filename);
+//                System.exit(1);
+//            }
+//        }
     }
 }
