@@ -90,6 +90,7 @@ class ExternalSort extends Operator {
         }
         return 0;
     }
+
     private int findMaxTupleIndex(ArrayList<Batch> mem, int[] cursors, boolean[] isNull) {
         int maxIdx = -1; boolean foundNonNull = false;
         for (int i = 0; i < mem.size(); ++i) {
@@ -108,7 +109,7 @@ class ExternalSort extends Operator {
     private ArrayList<SortedRun> mergeSortedRuns(ArrayList<SortedRun> srs) {
         ArrayList<SortedRun> newSrs = new ArrayList<>();
         for (int i = 0; i < (int) Math.ceil((double)srs.size() / (double)(numBuff-1)); ++i) {
-            newSrs.add(new SortedRun(batchsize));
+            newSrs.add(null);
         }
         for (int i = 0; i < srs.size(); i += (numBuff-1)) {
             SortedRun outSr = new SortedRun(batchsize);
@@ -151,6 +152,9 @@ class ExternalSort extends Operator {
                 }
             }
             newSrs.set(i/(numBuff-1), outSr);
+        }
+        for (SortedRun sr : srs) {
+            sr.close();
         }
         return newSrs;
     }
