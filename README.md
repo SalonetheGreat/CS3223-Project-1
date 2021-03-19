@@ -21,7 +21,7 @@ New functions implemented in the code
    
    see src/qp/oprators/Orderby.java
    
-   This class provides an orderby operation and returns tuples ordered by given attributes in Asc/Des order (depending on the input)
+   This class provides an orderby operation and returns tuples ordered by given attributes in Asc/Des order (depending on the input).
    
    open() will generate an external sort operator from the base to sort the given base table in Asc/Dec order based on given attributes.
    
