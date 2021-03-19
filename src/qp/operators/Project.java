@@ -4,6 +4,8 @@
 
 package qp.operators;
 
+import org.w3c.dom.Attr;
+import qp.utils.Aggregation;
 import qp.utils.Attribute;
 import qp.utils.Batch;
 import qp.utils.Schema;
@@ -16,6 +18,7 @@ public class Project extends Operator {
     Operator base;                 // Base table to project
     ArrayList<Attribute> attrset;  // Set of attributes to project
     int batchsize;                 // Number of tuples per outbatch
+    boolean hasAggregation;        //whether to project aggregation or not
 
     /**
      * The following fields are requied during execution
@@ -58,6 +61,7 @@ public class Project extends Operator {
         /** set number of tuples per batch **/
         int tuplesize = schema.getTupleSize();
         batchsize = Batch.getPageSize() / tuplesize;
+        hasAggregation = false;
 
         if (!base.open()) return false;
 
@@ -69,9 +73,11 @@ public class Project extends Operator {
         for (int i = 0; i < attrset.size(); ++i) {
             Attribute attr = attrset.get(i);
 
-            if (attr.getAggType() != Attribute.NONE) {
-                System.err.println("Aggragation is not implemented.");
-                System.exit(1);
+            if (attr.getAggType() != Attribute.NONE && hasAggregation == false) {
+                hasAggregation = true;
+            } else if (hasAggregation == true && attr.getAggType() == Attribute.NONE) {
+                    System.err.println("Cannot select aggregation and tuples at the same time.");
+                    System.exit(1);
             }
 
             int index = baseSchema.indexOf(attr.getBaseAttribute());
@@ -80,10 +86,66 @@ public class Project extends Operator {
         return true;
     }
 
+    public Batch next() {
+        if (hasAggregation) {
+            return next_aggregation();
+        } else {
+            return next_noaggregation();
+        }
+    }
+
+    public Batch next_aggregation() {
+        outbatch = new Batch(batchsize);
+        inbatch = base.next();
+        if (inbatch == null) {
+            return null;
+        }
+        ArrayList<Aggregation> aggregations = new ArrayList<>();
+
+        while (inbatch != null) {
+            for (int i = 0; i < inbatch.size(); ++i) {
+                Tuple basetuple = inbatch.get(i);
+                for (int j = 0; j < attrset.size(); ++j) {
+                    Object data = basetuple.dataAt(attrIndex[j]);
+                    if (aggregations.size() < attrset.size()) {
+                        aggregations.add(new Aggregation(data, attrset.get(j).getType()));
+                        continue;
+                    }
+                    aggregations.get(j).update(data);
+                }
+            }
+            inbatch = base.next();
+        }
+        ArrayList<Object> present = new ArrayList<>();
+        for (int i = 0; i < attrset.size(); ++i) {
+            Attribute attr = attrset.get(i);
+            if (attr.getAggType() == Attribute.MIN) {
+                if (attr.getType() == Attribute.INT) {
+                    present.add(aggregations.get(i).returnMinInt());
+                } else {
+                    present.add(aggregations.get(i).returnMinFlt());
+                }
+            } else if (attr.getAggType() == Attribute.MAX) {
+                if (attr.getType() == Attribute.INT) {
+                    present.add(aggregations.get(i).returnMaxInt());
+                } else {
+                    present.add(aggregations.get(i).returnMaxFlt());
+                }
+            } else if (attr.getAggType() == Attribute.COUNT) {
+                present.add(aggregations.get(i).returnCount());
+            } else {
+                present.add(aggregations.get(i).returnAvg());
+            }
+        }
+        Tuple outtuple = new Tuple(present);
+        outbatch.add(outtuple);
+        return outbatch;
+    }
+
     /**
      * Read next tuple from operator
      */
-    public Batch next() {
+    public Batch next_noaggregation() {
         outbatch = new Batch(batchsize);
         /** all the tuples in the inbuffer goes to the output buffer **/
         inbatch = base.next();
