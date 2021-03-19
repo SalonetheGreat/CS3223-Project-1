@@ -61,8 +61,8 @@ public class SortMergeJoin extends Join {
             rightindex.add(right.getSchema().indexOf(rightattr));
         }
 
-        leftES = new ExternalSort(OpType.SORT, left, leftindex.get(0), numBuff);
-        rightES = new ExternalSort(OpType.SORT, right, rightindex.get(0), numBuff);
+        leftES = new ExternalSort(OpType.SORT, left, leftindex, numBuff);
+        rightES = new ExternalSort(OpType.SORT, right, rightindex, numBuff);
 
         if (!leftES.open()) return false;
         if (!rightES.open()) return false;
@@ -120,19 +120,24 @@ public class SortMergeJoin extends Join {
             } else {
                 Tuple lefttuple = leftbatches.get(lpgcurs).get(lcurs);
                 Tuple righttuple = rightbatches.get(rpgcurs).get(rcurs);
-                if (Tuple.compareTuples(lefttuple, righttuple, leftindex.get(0), rightindex.get(0)) == 0) {
-                    Tuple outTuple = lefttuple.joinWith(righttuple);
-                    outbatch.add(outTuple);
-                    lcurs++; rcurs++;
-                    if (lcurs == leftbatches.get(lpgcurs).size()) {
-                        lcurs = 0;
-                        lpgcurs++;
+                int cmpRes = compareTuplesByIndexes(lefttuple, righttuple, leftindex, rightindex);
+                if (cmpRes == 0) {
+                    if (lefttuple.checkJoin(righttuple, leftindex, rightindex)) {
+                        Tuple outTuple = lefttuple.joinWith(righttuple);
+                        outbatch.add(outTuple);
+                        lcurs++; rcurs++;
+                        if (lcurs == leftbatches.get(lpgcurs).size()) {
+                            lcurs = 0;
+                            lpgcurs++;
+                        }
+                        if (rcurs == rightbatches.get(rpgcurs).size()) {
+                            rcurs = 0;
+                            rpgcurs++;
+                        }
+                    } else {
+                        lcurs++; rcurs++;
                     }
-                    if (rcurs == rightbatches.get(rpgcurs).size()) {
-                        rcurs = 0;
-                        rpgcurs++;
-                    }
-                } else if (Tuple.compareTuples(lefttuple, righttuple, leftindex.get(0), rightindex.get(0)) < 0) {
+                } else if (cmpRes < 0) {
                     lcurs++;
                     if (lcurs == leftbatches.get(lpgcurs).size()) {
                         lcurs = 0;
@@ -159,4 +164,13 @@ public class SortMergeJoin extends Join {
         return true;
     }
 
+    private int compareTuplesByIndexes(Tuple lefttuple, Tuple righttuple, ArrayList<Integer> leftindexes, ArrayList<Integer> rightindexes) {
+        for (int i = 0; i < leftindexes.size(); ++i) {
+            int cmpRes = Tuple.compareTuples(lefttuple, righttuple, leftindexes.get(i), rightindexes.get(i));
+            if (cmpRes != 0) {
+                return cmpRes;
+            }
+        }
+        return 0;
+    }
 }

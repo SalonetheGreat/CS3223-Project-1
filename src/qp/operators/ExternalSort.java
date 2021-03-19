@@ -9,7 +9,7 @@ import java.util.Collections;
 
 class ExternalSort extends Operator {
     Operator base;
-    int compareIndex;
+    ArrayList<Integer> compareIndexes;
     String outfile;
     int filenum;
     int numBuff;
@@ -18,14 +18,15 @@ class ExternalSort extends Operator {
     ArrayList<SortedRun> srs;
     SortedRun finalSR;
 
-    public ExternalSort(int type, Operator base, int compareIndex, int numBuff) {
+    public ExternalSort(int type, Operator base, ArrayList<Integer> compareIndexes, int numBuff) {
         super(type);
         this.base = base;
-        this.compareIndex = compareIndex;
+        this.compareIndexes = compareIndexes;
         this.schema = base.getSchema();
         this.numBuff = numBuff;
         mem = new ArrayList<>(numBuff);
         filenum = 0;
+        srs = new ArrayList<>();
     }
 
     @Override
@@ -67,7 +68,13 @@ class ExternalSort extends Operator {
     }
 
     private int compareTuplesByIndex(Tuple left , Tuple right) {
-        return Tuple.compareTuples(left, right, compareIndex);
+        for (int cmpIdx : compareIndexes) {
+            int cmpRes = Tuple.compareTuples(left, right, cmpIdx);
+            if (cmpRes != 0) {
+                return cmpRes;
+            }
+        }
+        return 0;
     }
     private int findMaxTupleIndex(ArrayList<Batch> mem, int[] cursors, boolean[] isNull) {
         int maxIdx = -1; boolean foundNonNull = false;
