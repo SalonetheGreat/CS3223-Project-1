@@ -144,7 +144,7 @@ class ExternalSort extends Operator {
                 cursors[maxIdx]++;
                 if (cursors[maxIdx] == mem.get(maxIdx).size()) {
                     Batch temp = srs.get(i+maxIdx).next();
-                    if (temp != null) {
+                    if (temp != null && temp.size() > 0) {
                         mem.set(maxIdx, temp);
                         cursors[maxIdx] = 0;
                     }

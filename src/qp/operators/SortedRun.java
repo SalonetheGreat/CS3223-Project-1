@@ -23,6 +23,12 @@ class SortedRun {
         } catch (IOException e) {
             System.err.println("SortedRun: Error writing " + filename);
         }
+        try {
+            in = new ObjectInputStream(new FileInputStream(filename));
+        } catch (IOException e) {
+            System.err.println("SortedRun: Error reading " + filename);
+            System.exit(1);
+        }
     }
 
     public SortedRun(ArrayList<Tuple> tuples, int batchsize) {
@@ -53,6 +59,12 @@ class SortedRun {
                 System.err.println("SortedRun: cannot write object");
             }
         }
+        try {
+            in = new ObjectInputStream(new FileInputStream(filename));
+        } catch (IOException e) {
+            System.err.println("SortedRun: Error reading " + filename);
+            System.exit(1);
+        }
     }
 
     public boolean add(Batch batch) {
@@ -69,12 +81,6 @@ class SortedRun {
         /** The file reached its end and no more to read **/
         if (eos) {
             return null;
-        }
-        try {
-            in = new ObjectInputStream(new FileInputStream(filename));
-        } catch (IOException e) {
-            System.err.println("SortedRun: Error reading " + filename);
-            System.exit(1);
         }
         Batch tuples = new Batch(batchsize);
         try {
