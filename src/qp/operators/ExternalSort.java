@@ -39,7 +39,7 @@ class ExternalSort extends Operator {
             ArrayList<Tuple> tuplesInMem = new ArrayList<>();
             for (int i = 0; i < numBuff; ++i) {
                 Batch curr = base.next();
-                if (curr != null) mem.set(i, curr);
+                if (curr != null) mem.add(curr);
                 else break;
                 for (int j = 0; j < curr.size(); ++j)
                     tuplesInMem.add(curr.get(j));
@@ -94,8 +94,7 @@ class ExternalSort extends Operator {
     private ArrayList<SortedRun> mergeSortedRuns(ArrayList<SortedRun> srs, ArrayList<Batch> mem) {
         ArrayList<SortedRun> newSrs = new ArrayList<>(srs.size() % (numBuff-1) + 1);
         for (int i = 0; i < srs.size(); i += (numBuff-1)) {
-            SortedRun outSr = newSrs.get(i/(numBuff-1));
-            outSr = new SortedRun(batchsize);
+            SortedRun outSr = new SortedRun(batchsize);
             mem = new ArrayList<Batch>();
             for (int j = 0; j < numBuff-1; ++j) {
                 Batch temp = srs.get(i+j).next();
@@ -127,6 +126,7 @@ class ExternalSort extends Operator {
                     else isNull[maxIdx] = true;
                 }
             }
+            newSrs.set(i, outSr);
         }
         return newSrs;
     }

@@ -81,23 +81,20 @@ class SortedRun {
             return null;
         }
         Batch tuples = new Batch(batchsize);
-        while (!tuples.isFull()) {
-            try {
-                Tuple data = (Tuple) in.readObject();
-                tuples.add(data);
-            } catch (ClassNotFoundException cnf) {
-                System.err.println("Scan:Class not found for reading file  " + filename);
-                System.exit(1);
-            } catch (EOFException EOF) {
-                /** At this point incomplete page is sent and at next call it considered
-                 ** as end of file
-                 **/
-                eos = true;
-                return tuples;
-            } catch (IOException e) {
-                System.err.println("Scan:Error reading " + filename);
-                System.exit(1);
-            }
+        try {
+            Batch data = (Batch) in.readObject();
+        } catch (ClassNotFoundException cnf) {
+            System.err.println("SortedRun:Class not found for reading file  " + filename);
+            System.exit(1);
+        } catch (EOFException EOF) {
+            /** At this point incomplete page is sent and at next call it considered
+             ** as end of file
+             **/
+            eos = true;
+            return tuples;
+        } catch (IOException e) {
+            System.err.println("SortedRun:Error reading " + filename);
+            System.exit(1);
         }
         return tuples;
     }
