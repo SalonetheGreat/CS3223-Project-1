@@ -76,10 +76,31 @@ public class PlanCost {
             return getStatistics((Project) node);
         } else if (node.getOpType() == OpType.SCAN) {
             return getStatistics((Scan) node);
+        } else if (node.getOpType() == OpType.DISTINCT) {
+            return getStatistics((Distinct) node);
         }
         System.out.println("operator is not supported");
         isFeasible = false;
         return 0;
+    }
+
+    /**
+     *  statistics
+     *  No cost involved as done on the fly
+     */
+    private long getStatistics(Distinct node) {
+        long intuples = calculateCost(node.getBase());
+        long numdistinct = intuples;
+        Schema schema = node.getSchema();
+        int index = 0;
+        Attribute fullattr = schema.getAttribute(index);
+        Long temp = ht.get(fullattr);
+        numdistinct = temp.longValue();
+        if (!isFeasible) {
+            System.out.println("notFeasible");
+            return Long.MAX_VALUE;
+        }
+        return numdistinct;
     }
 
     /**
