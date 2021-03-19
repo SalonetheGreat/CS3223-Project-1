@@ -78,7 +78,11 @@ public class Orderby extends Operator {
 
         //need to change sorting algorithm here to include attrIndex
         //isDes is used here
-        externalSort = new ExternalSort(OpType.SORT, base, attrIndex, numBuff);
+        if (isDes) {
+            externalSort = new ExternalSort(OpType.SORT, base, attrIndex, numBuff, ExternalSort.DESCENDING);
+        } else {
+            externalSort = new ExternalSort(OpType.SORT, base, attrIndex, numBuff, ExternalSort.ASCENDING);
+        }
         if (!externalSort.open()) return false;
 
         return true;

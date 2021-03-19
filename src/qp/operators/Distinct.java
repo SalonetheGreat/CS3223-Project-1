@@ -64,7 +64,7 @@ public class Distinct extends Operator {
         for (int i=0; i < attList.size(); ++i) {
             indexList.add(i);
         }
-        externalSort = new ExternalSort(OpType.SORT, base, indexList, numBuff);
+        externalSort = new ExternalSort(OpType.SORT, base, indexList, numBuff, ExternalSort.ASCENDING);
         if (!externalSort.open()) return false;
 
         return true;

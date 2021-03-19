@@ -11,6 +11,8 @@ import java.util.Arrays;
 import java.util.Collections;
 
 class ExternalSort extends Operator {
+    public static final int ASCENDING = 0;
+    public static final int DESCENDING = 1;
     Operator base;
     ArrayList<Integer> compareIndexes;
     String outfile;
@@ -19,8 +21,9 @@ class ExternalSort extends Operator {
     ArrayList<Batch> mem;
     ArrayList<SortedRun> srs;
     SortedRun finalSR;
+    int asOrDes;
 
-    public ExternalSort(int type, Operator base, ArrayList<Integer> compareIndexes, int numBuff) {
+    public ExternalSort(int type, Operator base, ArrayList<Integer> compareIndexes, int numBuff, int asOrDes) {
         super(type);
         this.base = base;
         this.compareIndexes = compareIndexes;
@@ -31,6 +34,7 @@ class ExternalSort extends Operator {
             mem.add(new Batch(batchsize));
         }
         srs = new ArrayList<>();
+        this.asOrDes = asOrDes;
     }
 
     @Override
@@ -79,7 +83,10 @@ class ExternalSort extends Operator {
         for (int cmpIdx : compareIndexes) {
             int cmpRes = Tuple.compareTuples(left, right, cmpIdx);
             if (cmpRes != 0) {
-                return cmpRes;
+                if (asOrDes == ASCENDING)
+                    return cmpRes;
+                else
+                    return -cmpRes;
             }
         }
         return 0;

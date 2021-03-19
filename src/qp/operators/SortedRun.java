@@ -74,6 +74,7 @@ class SortedRun {
             in = new ObjectInputStream(new FileInputStream(filename));
         } catch (IOException e) {
             System.err.println("SortedRun: Error reading " + filename);
+            System.exit(1);
         }
         Batch tuples = new Batch(batchsize);
         try {
@@ -106,34 +107,5 @@ class SortedRun {
         }
         File file = new File(filename);
         return true;
-    }
-
-    public boolean writeToFile(String fileToWrite) {
-        return false;
-//        try {
-//            ObjectInputStream inToRead = new ObjectInputStream(new FileInputStream(filename));
-//            ObjectOutputStream outToWrite = new ObjectOutputStream(new FileOutputStream(fileToWrite));
-//        } catch (IOException e) {
-//            System.err.println("Error printing SortedRun to file");
-//            System.exit(2);
-//        }
-//        boolean wtfeos = false;
-//        while (!wtfeos) {
-//            Batch tuples = new Batch(batchsize);
-//            try {
-//                tuples = (Batch) in.readObject();
-//            } catch (ClassNotFoundException cnf) {
-//                System.err.println("SortedRun:Class not found for reading file  " + filename);
-//                System.exit(1);
-//            } catch (EOFException EOF) {
-//                /** At this point incomplete page is sent and at next call it considered
-//                 ** as end of file
-//                 **/
-//                wtfeos = true;
-//            } catch (IOException e) {
-//                System.err.println("SortedRun:Error reading " + filename);
-//                System.exit(1);
-//            }
-//        }
     }
 }
