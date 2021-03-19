@@ -100,6 +100,8 @@ class SortedRun {
             System.err.println("SortedRun:Error reading " + filename);
             System.exit(1);
         }
+        if (tuples.size() == 0)
+            return null;
         return tuples;
     }
 
