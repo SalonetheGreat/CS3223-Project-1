@@ -19,11 +19,6 @@ class SortedRun {
         filename = "SortedRun-" + fn;
         this.batchsize = batchsize;
         try {
-            in = new ObjectInputStream(new FileInputStream(filename));
-        } catch (IOException e) {
-            System.err.println("SortedRun: Error reading " + filename);
-        }
-        try {
             out = new ObjectOutputStream(new FileOutputStream((filename)));
         } catch (IOException e) {
             System.err.println("SortedRun: Error writing " + filename);
@@ -34,11 +29,6 @@ class SortedRun {
         fn++;
         filename = "SortedRun-" + fn;
         this.batchsize = batchsize;
-        try {
-            in = new ObjectInputStream(new FileInputStream(filename));
-        } catch (IOException e) {
-            System.err.println("SortedRun: Error reading " + filename);
-        }
         try {
             out = new ObjectOutputStream(new FileOutputStream((filename)));
         } catch (IOException e) {
@@ -79,6 +69,11 @@ class SortedRun {
         /** The file reached its end and no more to read **/
         if (eos) {
             return null;
+        }
+        try {
+            in = new ObjectInputStream(new FileInputStream(filename));
+        } catch (IOException e) {
+            System.err.println("SortedRun: Error reading " + filename);
         }
         Batch tuples = new Batch(batchsize);
         try {
