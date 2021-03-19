@@ -41,7 +41,6 @@ class ExternalSort extends Operator {
     public boolean open() {
         int tuplesize = schema.getTupleSize();
         batchsize = Batch.getPageSize() / tuplesize;
-
         if(!base.open()) return false;
         Batch curr = null;
         do {
