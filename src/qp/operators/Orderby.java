@@ -1,5 +1,5 @@
 /**
- * To distinct out the required attributes from the result
+ * To order the required attributes from the result
  **/
 
 package qp.operators;
@@ -10,13 +10,14 @@ import qp.utils.Schema;
 import qp.utils.Tuple;
 
 import java.util.ArrayList;
-import java.util.Collections;
 
-public class Distinct extends Operator {
+public class Orderby extends Operator {
 
     Operator base;                 // Base table to distinct
     int numBuff;                   // Number of buffer available
     int batchsize;                 // Number of tuples per outbatch
+    boolean isDes;
+    ArrayList<Attribute> orderbyList;
     ArrayList<Attribute> attList;
     ExternalSort externalSort;
     ArrayList<Integer> indexList;
@@ -30,12 +31,14 @@ public class Distinct extends Operator {
 
     /**
      * index of the attributes in the base operator
-     * * that are to be distinct
+     * * that are to be ordered
      **/
-    int[] attrIndex;
+    ArrayList<Integer> attrIndex;
 
-    public Distinct(Operator base, int type) {
+    public Orderby(Operator base, ArrayList<Attribute> orderbyList, boolean isDes, int type) {
         super(type);
+        this.orderbyList = orderbyList;
+        this.isDes = isDes;
         this.base = base;
     }
 
@@ -65,24 +68,29 @@ public class Distinct extends Operator {
         batchsize = Batch.getPageSize() / tuplesize;
 
         if (!base.open()) return false;
-        attList = new ArrayList<>();
-        attList = base.getSchema().getAttList();
-        indexList = new ArrayList<Integer>(0);
-        for (int i=0; i < attList.size(); ++i) {
-            indexList.add(i+1);
+
+        Schema baseSchema = base.getSchema();
+        attrIndex = new ArrayList<Integer>(orderbyList.size());
+        for (int i = 0; i < orderbyList.size(); ++i) {
+            Attribute attr = orderbyList.get(i);
+            int index = baseSchema.indexOf(attr.getBaseAttribute());
+            attrIndex.add(index);
         }
-        externalSort = new ExternalSort(OpType.SORT, base, indexList, numBuff);
+
+        //need to change sorting algorithm here to include attrIndex
+        //isDes is used here
+        externalSort = new ExternalSort(OpType.SORT, base, attrIndex, numBuff);
         if (!externalSort.open()) return false;
 
         return true;
     }
 
     /**
-     * Read next tuple from external sort
+     * Read next tuple from operator
      */
     public Batch next() {
         outbatch = new Batch(batchsize);
-
+        /** all the tuples in the inbuffer goes to the output buffer **/
         Tuple previousTuple = null;
 
         if (inbatch == null) {
@@ -94,13 +102,7 @@ public class Distinct extends Operator {
                 inbatch = externalSort.next();
                 for (int curs = 0; curs < inbatch.size(); ++curs) {
                     Tuple currTuple = inbatch.get(curs);
-                    if (previousTuple == null) {
-                        previousTuple = currTuple;
-                    }
-                    if (previousTuple != currTuple) {
-                        outbatch.add(currTuple);
-                        previousTuple = currTuple;
-                    }
+                    outbatch.add(currTuple);
                 }
                 if (inbatch == null) {
                     break;
@@ -122,9 +124,13 @@ public class Distinct extends Operator {
 
     public Object clone() {
         Operator newbase = (Operator) base.clone();
-        Distinct newDistinct = new Distinct(newbase, optype);
-        newDistinct.setNumBuff(numBuff);
-        return newDistinct;
+        ArrayList<Attribute> newattr = new ArrayList<>();
+        for (int i = 0; i < orderbyList.size(); ++i)
+            newattr.add((Attribute) orderbyList.get(i).clone());
+        Boolean newDsc = isDes;
+        Orderby newOrderby = new Orderby(newbase, newattr, newDsc, optype);
+        newOrderby.setNumBuff(numBuff);
+        return newOrderby;
     }
 
 }
