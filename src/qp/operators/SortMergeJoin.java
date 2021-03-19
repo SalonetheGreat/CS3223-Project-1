@@ -14,6 +14,8 @@ import java.util.ArrayList;
 public class SortMergeJoin extends Join {
 
     int batchsize;                  // Number of tuples per out batch
+    int leftbatchsize;
+    int rightbatchsize;
     ArrayList<Integer> leftindex;   // Indices of the join attributes in left table
     ArrayList<Integer> rightindex;  // Indices of the join attributes in right table
     Batch outbatch;                 // Buffer page for output
@@ -46,6 +48,8 @@ public class SortMergeJoin extends Join {
         /** select number of tuples per batch **/
         int tuplesize = schema.getTupleSize();
         batchsize = Batch.getPageSize() / tuplesize;
+        leftbatchsize = Batch.getPageSize() / left.getSchema().getTupleSize();
+        rightbatchsize = Batch.getPageSize() / right.getSchema().getTupleSize();
 
         /** find indices attributes of join conditions **/
         leftindex = new ArrayList<>();
@@ -94,6 +98,7 @@ public class SortMergeJoin extends Join {
                         break;
                     }
                 }
+                lpgcurs = 0; lcurs = 0;
             }
             if (rpgcurs == rightbatches.size()) {
                 for (int i = 0; i < rightbatches.size(); ++i) {
@@ -103,35 +108,38 @@ public class SortMergeJoin extends Join {
                         break;
                     }
                 }
+                rpgcurs = 0; rcurs = 0;
             }
-            if (eosl && eosr) {
+
+            if (leftbatches.get(lpgcurs) == null) eosl = true;
+            if (rightbatches.get(rpgcurs) == null) eosr = true;
+
+            if (eosl || eosr) {
                 if (outbatch.size() == 0) return null;
                 else return outbatch;
-            }
-            else if (eosl) {
-                outbatch.add(rightbatches.get(rpgcurs).get(rcurs));
-                rcurs++;
-                if (rcurs == rightbatches.get(rpgcurs).size()) {
-                    rcurs = 0; rpgcurs++;
-                }
-            }
-            else if (eosr) {
-                outbatch.add(leftbatches.get(lpgcurs).get(lcurs));
-                lcurs++;
-                if (lcurs == leftbatches.get(lpgcurs).size()) {
-                    lcurs = 0; lpgcurs++;
-                }
             } else {
-                if (Tuple.compareTuples(leftbatches.get(lpgcurs).get(lcurs), rightbatches.get(rpgcurs).get(rcurs),
-                        leftindex.get(0), rightindex.get(0)) < 0) {
-                    outbatch.add(leftbatches.get(lpgcurs).get(lcurs));
+                Tuple lefttuple = leftbatches.get(lpgcurs).get(lcurs);
+                Tuple righttuple = rightbatches.get(rpgcurs).get(rcurs);
+                if (Tuple.compareTuples(lefttuple, righttuple, leftindex.get(0), rightindex.get(0)) == 0) {
+                    Tuple outTuple = lefttuple.joinWith(righttuple);
+                    outbatch.add(outTuple);
+                    lcurs++; rcurs++;
+                    if (lcurs == leftbatches.get(lpgcurs).size()) {
+                        lcurs = 0;
+                        lpgcurs++;
+                    }
+                    if (rcurs == rightbatches.get(rpgcurs).size()) {
+                        rcurs = 0;
+                        rpgcurs++;
+                    }
+                } else if (Tuple.compareTuples(lefttuple, righttuple, leftindex.get(0), rightindex.get(0)) < 0) {
                     lcurs++;
                     if (lcurs == leftbatches.get(lpgcurs).size()) {
                         lcurs = 0;
                         lpgcurs++;
                     }
                 } else {
-                    outbatch.add(rightbatches.get(rpgcurs).get(rcurs));
+                    rcurs++;
                     if (rcurs == rightbatches.get(rpgcurs).size()) {
                         rcurs = 0;
                         rpgcurs++;
