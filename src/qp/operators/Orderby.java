@@ -93,16 +93,13 @@ public class Orderby extends Operator {
      */
     public Batch next() {
         outbatch = new Batch(batchsize);
-
-        while (!outbatch.isFull()) {
-            inbatch = externalSort.next();
-            for (int curs = 0; curs < inbatch.size(); ++curs) {
-                Tuple currTuple = inbatch.get(curs);
-                outbatch.add(currTuple);
-            }
-            if (inbatch == null) {
-                break;
-            }
+        inbatch = externalSort.next();
+        if (inbatch == null || inbatch.size() == 0) {
+            return null;
+        }
+        for (int curs = 0; curs < inbatch.size(); ++curs) {
+            Tuple currTuple = inbatch.get(curs);
+            outbatch.add(currTuple);
         }
         return outbatch;
     }
