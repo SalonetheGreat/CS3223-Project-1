@@ -3,6 +3,9 @@ package qp.operators;
 import qp.utils.Batch;
 import qp.utils.Tuple;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -11,7 +14,6 @@ class ExternalSort extends Operator {
     Operator base;
     ArrayList<Integer> compareIndexes;
     String outfile;
-    int filenum;
     int numBuff;
     int batchsize;
     ArrayList<Batch> mem;
@@ -28,7 +30,6 @@ class ExternalSort extends Operator {
         for (int i = 0; i < numBuff; ++i) {
             mem.add(new Batch(batchsize));
         }
-        filenum = 0;
         srs = new ArrayList<>();
     }
 
@@ -38,25 +39,27 @@ class ExternalSort extends Operator {
         batchsize = Batch.getPageSize() / tuplesize;
 
         if(!base.open()) return false;
+        Batch curr = null;
         do {
             ArrayList<Tuple> tuplesInMem = new ArrayList<>();
             for (int i = 0; i < numBuff; ++i) {
-                Batch curr = base.next();
+                curr = base.next();
                 if (curr != null) mem.add(curr);
                 else break;
                 for (int j = 0; j < curr.size(); ++j)
                     tuplesInMem.add(curr.get(j));
             }
             Collections.sort(tuplesInMem, this::compareTuplesByIndex);
-            srs.add(new SortedRun(tuplesInMem, batchsize));
-        } while (base.next() != null);
+            if (tuplesInMem.size() != 0)
+                srs.add(new SortedRun(tuplesInMem, batchsize));
+        } while (curr != null);
 
         for (int pass = 0; ; pass++) {
             if (srs.size() == 1) {
                 finalSR = srs.get(0);
                 return true;
             }
-            ArrayList<SortedRun> temp = mergeSortedRuns(srs, mem);
+            ArrayList<SortedRun> temp = mergeSortedRuns(srs);
             srs = temp;
         }
     }
@@ -68,7 +71,8 @@ class ExternalSort extends Operator {
 
     @Override
     public boolean close() {
-        return super.close();
+        finalSR.close();
+        return true;
     }
 
     private int compareTuplesByIndex(Tuple left , Tuple right) {
@@ -82,8 +86,8 @@ class ExternalSort extends Operator {
     }
     private int findMaxTupleIndex(ArrayList<Batch> mem, int[] cursors, boolean[] isNull) {
         int maxIdx = -1; boolean foundNonNull = false;
-        for (int i = 0; i < mem.size()-1; ++i) {
-            if (isNull[i] || mem.get(i).size() == 0) continue;
+        for (int i = 0; i < mem.size(); ++i) {
+            if (isNull[i]) continue;
             if (!foundNonNull) {
                 maxIdx = i;
                 foundNonNull = true;
@@ -95,7 +99,7 @@ class ExternalSort extends Operator {
         return maxIdx;
     }
 
-    private ArrayList<SortedRun> mergeSortedRuns(ArrayList<SortedRun> srs, ArrayList<Batch> mem) {
+    private ArrayList<SortedRun> mergeSortedRuns(ArrayList<SortedRun> srs) {
         ArrayList<SortedRun> newSrs = new ArrayList<>();
         for (int i = 0; i < (int) Math.ceil((double)srs.size() / (double)(numBuff-1)); ++i) {
             newSrs.add(new SortedRun(batchsize));
@@ -108,7 +112,7 @@ class ExternalSort extends Operator {
                     break;
                 }
                 Batch temp = srs.get(i+j).next();
-                if (temp != null || temp.size() > 0)
+                if (temp != null && temp.size() > 0)
                     mem.add(temp);
                 else
                     break;
@@ -117,8 +121,7 @@ class ExternalSort extends Operator {
             Arrays.fill(cursors, 0);
             boolean[] isNull = new boolean[mem.size()];
             Arrays.fill(isNull, false);
-            mem.add(new Batch(batchsize));
-            Batch outbatch = mem.get(mem.size()-1);
+            Batch outbatch = new Batch(batchsize);
             while (true) {
                 int maxIdx = findMaxTupleIndex(mem, cursors, isNull);
                 if (maxIdx == -1) {
@@ -127,8 +130,10 @@ class ExternalSort extends Operator {
                     break;
                 }
                 outbatch.add(mem.get(maxIdx).get(cursors[maxIdx]));
-                if (outbatch.isFull())
+                if (outbatch.isFull()) {
                     outSr.add(outbatch);
+                    outbatch = new Batch(batchsize);
+                }
                 cursors[maxIdx]++;
                 if (cursors[maxIdx] == mem.get(maxIdx).size()) {
                     Batch temp = srs.get(i+maxIdx).next();

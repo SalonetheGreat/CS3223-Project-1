@@ -27,13 +27,6 @@ public class Distinct extends Operator {
     Batch inbatch;
     Batch outbatch;
 
-
-    /**
-     * index of the attributes in the base operator
-     * * that are to be distinct
-     **/
-    int[] attrIndex;
-
     public Distinct(Operator base, int type) {
         super(type);
         this.base = base;
@@ -69,7 +62,7 @@ public class Distinct extends Operator {
         attList = base.getSchema().getAttList();
         indexList = new ArrayList<Integer>(0);
         for (int i=0; i < attList.size(); ++i) {
-            indexList.add(i+1);
+            indexList.add(i);
         }
         externalSort = new ExternalSort(OpType.SORT, base, indexList, numBuff);
         if (!externalSort.open()) return false;
@@ -85,26 +78,20 @@ public class Distinct extends Operator {
 
         Tuple previousTuple = null;
 
-        if (inbatch == null) {
-            return null;
-        }
-
         while (!outbatch.isFull()) {
-            for (int i = 0; i < numBuff; ++i) {
-                inbatch = externalSort.next();
-                for (int curs = 0; curs < inbatch.size(); ++curs) {
-                    Tuple currTuple = inbatch.get(curs);
-                    if (previousTuple == null) {
-                        previousTuple = currTuple;
-                    }
-                    if (previousTuple != currTuple) {
-                        outbatch.add(currTuple);
-                        previousTuple = currTuple;
-                    }
+            inbatch = externalSort.next();
+            for (int curs = 0; curs < inbatch.size(); ++curs) {
+                Tuple currTuple = inbatch.get(curs);
+                if (previousTuple == null) {
+                    previousTuple = currTuple;
                 }
-                if (inbatch == null) {
-                    break;
+                if (previousTuple != currTuple) {
+                    outbatch.add(currTuple);
+                    previousTuple = currTuple;
                 }
+            }
+            if (inbatch == null) {
+                break;
             }
         }
         return outbatch;

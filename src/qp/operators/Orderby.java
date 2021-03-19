@@ -18,9 +18,8 @@ public class Orderby extends Operator {
     int batchsize;                 // Number of tuples per outbatch
     boolean isDes;
     ArrayList<Attribute> orderbyList;
-    ArrayList<Attribute> attList;
     ExternalSort externalSort;
-    ArrayList<Integer> indexList;
+
     /**
      * The following fields are requied during execution
      * * of the Distinct Operator
@@ -90,23 +89,15 @@ public class Orderby extends Operator {
      */
     public Batch next() {
         outbatch = new Batch(batchsize);
-        /** all the tuples in the inbuffer goes to the output buffer **/
-        Tuple previousTuple = null;
-
-        if (inbatch == null) {
-            return null;
-        }
 
         while (!outbatch.isFull()) {
-            for (int i = 0; i < numBuff; ++i) {
-                inbatch = externalSort.next();
-                for (int curs = 0; curs < inbatch.size(); ++curs) {
-                    Tuple currTuple = inbatch.get(curs);
-                    outbatch.add(currTuple);
-                }
-                if (inbatch == null) {
-                    break;
-                }
+            inbatch = externalSort.next();
+            for (int curs = 0; curs < inbatch.size(); ++curs) {
+                Tuple currTuple = inbatch.get(curs);
+                outbatch.add(currTuple);
+            }
+            if (inbatch == null) {
+                break;
             }
         }
         return outbatch;

@@ -65,8 +65,6 @@ public class RandomInitialPlan {
         createProjectOp();
         
         if (sqlquery.isDistinct()) {
-            //System.err.println("Distinct is not implemented.");
-            //System.exit(1);
             createDistinctOp();
         }
         
